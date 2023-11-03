@@ -1,0 +1,81 @@
+from lightning.pytorch import LightningDataModule
+
+
+class AudioDataModule(LightningDataModule):
+    def __init__(self, hparams):
+        super().__init__()
+        self.cfg = hparams
+        self.dataset = GlobWavDataset(hparams.roots, hparams.patterns)
+        self.train_dataset, self.val_dataset = torch.utils.data.random_split(
+            self.dataset, [len(self.dataset) - 1000, 1000]
+        )
+
+    def train_dataloader(self):
+        return torch.utils.data.DataLoader(
+            self.train_dataset,
+            batch_size=self.cfg.batch_size,
+            num_workers=self.cfg.num_workers,
+            collate_fn=lambda batch: self.collate_fn(batch, crops_second=10),
+        )
+
+    def val_dataloader(self):
+        return torch.utils.data.DataLoader(
+            self.val_dataset,
+            batch_size=self.cfg.batch_size,
+            num_workers=self.cfg.num_workers,
+            collate_fn=self.collate_fn,
+        )
+
+    def collate_fn(self, batch, crops_second=None):
+        wavs = []
+        wav_names = []
+        for sample in batch:
+            wav_name, (wav, sr), wav_path = sample
+            if sr != self.cfg.sample_rate:
+                wav = torchaudio.transforms.Resample(sr, self.cfg.sample_rate)(wav)
+            if crops_second is not None:
+                wav = wav[:, : int(crops_second * self.cfg.sample_rate)]
+            wavs.append(wav.view(-1))
+            wav_names.append(wav_name)
+        wavs = torch.nn.utils.rnn.pad_sequence(wavs, batch_first=True)
+        return wavs, wav_names
+
+
+import torch
+from torch.utils.data.dataset import Dataset
+import torchaudio
+from pathlib import Path
+import random
+import string
+
+
+def generate_random_string(length):
+    letters = string.ascii_letters
+    return "".join(random.choice(letters) for _ in range(length))
+
+
+class GlobWavDataset(Dataset):
+    def __init__(
+        self, roots, patterns, shuffled: bool = True, add_random_string=True
+    ) -> None:
+        self.wav_files = []
+        for root, pattern in zip(roots, patterns):
+            self.root = Path(root)
+            self.wav_files.extend(list(self.root.glob(pattern)))
+        if shuffled:
+            random.shuffle(self.wav_files)
+        self.add_random_string = add_random_string
+
+    def __len__(self):
+        return len(self.wav_files)
+
+    def __getitem__(self, idx):
+        wav_path = self.wav_files[idx]
+        if self.add_random_string:
+            return (
+                wav_path.stem + generate_random_string(5),
+                torchaudio.load(wav_path),
+                str(wav_path),
+            )
+        else:
+            return wav_path.stem, torchaudio.load(wav_path), str(wav_path)
