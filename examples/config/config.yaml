@@ -24,7 +24,7 @@ data:
   patterns:
    - "**/*.flac"
   batch_size: 16
-  num_workers: 16
+  num_workers: 4
   sample_rate: 24000
 
 train:
