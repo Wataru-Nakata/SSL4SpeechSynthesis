@@ -1,7 +1,7 @@
 import torch
 
 
-def span_masking(inputs, mask_embedding, mask_probability=0.08, span_length=10):
+def span_masking(inputs, mask_embedding:torch.Tensor, mask_probability=0.08, span_length=10):
     B, L, D = inputs.size()
     inputs = inputs.clone()
     mask = torch.rand(B, L) > mask_probability
@@ -10,7 +10,7 @@ def span_masking(inputs, mask_embedding, mask_probability=0.08, span_length=10):
         for j in range(L):
             if mask[i, j] == False:
                 span_mask[i, j : j + span_length] = False
-    inputs[~span_mask] = mask_embedding
+    inputs[~span_mask] = mask_embedding.type(inputs.dtype)
     return inputs
 
 
