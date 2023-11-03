@@ -10,6 +10,7 @@ class DACBert(nn.Module):
         config = BertConfig(**hparams.bert_config)
         print(config.vocab_size)
         self.bert = BertModel(config, add_pooling_layer=False)
+        del self.bert.embeddings.word_embeddings
         self.lm_heads = nn.ModuleList()
         self.input_linear = nn.Linear(hparams.input_size, config.hidden_size)
         self.loss = nn.CrossEntropyLoss()
