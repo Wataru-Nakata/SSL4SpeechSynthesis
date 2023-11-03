@@ -20,11 +20,11 @@ model:
 
 data:
   roots:
-   - "/mnt/hdd/datasets/hq-youtube"
+   - "/work/ge43/e43001/datasets/hq-youtube"
   patterns:
    - "**/*.flac"
-  batch_size: 8
-  num_workers: 8
+  batch_size: 32
+  num_workers: 16
   sample_rate: 24000
 
 train:
