@@ -51,12 +51,6 @@ class DACBertLightningModule(LightningModule):
         self.log("train/loss", output.loss)
         return output.loss
 
-    def on_after_backward(self) -> None:
-        print("on_after_backward enter")
-        for name,p in self.named_parameters():
-            if p.grad is None:
-                print(name,p)
-        print("on_after_backward exit")
     def validation_step(self, batch, batch_idx):
         wavs, wav_names = batch
         z,codes,latents = self.feature_extractor(wavs.unsqueeze(1), n_quantizers=len(self.model.lm_heads))
