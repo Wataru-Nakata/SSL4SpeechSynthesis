@@ -7,6 +7,7 @@ from lightning.pytorch import LightningModule
 from dac import DAC
 from ssl4speechsynthesis.model.model import DACBert
 from itertools import chain
+import transformers
 from .maksing import span_masking
 
 class FeatureExtractor():
@@ -70,4 +71,6 @@ class DACBertLightningModule(LightningModule):
         return super().on_fit_start()
 
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=2e-5)
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
+        scheduler = transformers.get_constant_schedule_with_warmup(optimizer, 10000)
+        return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
