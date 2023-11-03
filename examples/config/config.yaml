@@ -16,14 +16,14 @@ model:
       layer_norm_eps: 1e-12
       pad_token_id: 0
     n_heads: 2
-  dac_path: /home/wnakata/descript-audio-codec/runs/baseline/best/dac/weights.pth
+  dac_path: /work/ge43/e43001/weights.pth
 
 data:
   roots:
    - "/work/ge43/e43001/datasets/hq-youtube"
   patterns:
    - "**/*.flac"
-  batch_size: 32
+  batch_size: 16
   num_workers: 16
   sample_rate: 24000
 

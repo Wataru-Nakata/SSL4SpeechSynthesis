@@ -15,7 +15,7 @@ class AudioDataModule(LightningDataModule):
             self.train_dataset,
             batch_size=self.cfg.batch_size,
             num_workers=self.cfg.num_workers,
-            collate_fn=lambda batch: self.collate_fn(batch, crops_second=20),
+            collate_fn=lambda batch: self.collate_fn(batch, crops_second=15),
         )
 
     def val_dataloader(self):
