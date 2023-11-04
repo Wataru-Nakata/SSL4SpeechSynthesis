@@ -7,7 +7,7 @@ class AudioDataModule(LightningDataModule):
         self.cfg = hparams
         self.dataset = GlobWavDataset(hparams.roots, hparams.patterns)
         self.train_dataset, self.val_dataset = torch.utils.data.random_split(
-            self.dataset, [len(self.dataset) - 1000, 1000]
+            self.dataset, [len(self.dataset) - 3000, 3000]
         )
 
     def train_dataloader(self):
@@ -15,6 +15,7 @@ class AudioDataModule(LightningDataModule):
             self.train_dataset,
             batch_size=self.cfg.batch_size,
             num_workers=self.cfg.num_workers,
+            drop_last=True,
             collate_fn=lambda batch: self.collate_fn(batch, crops_second=15),
         )
 
@@ -22,8 +23,9 @@ class AudioDataModule(LightningDataModule):
         return torch.utils.data.DataLoader(
             self.val_dataset,
             batch_size=self.cfg.batch_size,
-            num_workers=self.cfg.num_workers,
-            collate_fn=self.collate_fn,
+            num_workers=0,
+            drop_last=True,
+            collate_fn=lambda batch: self.collate_fn(batch, crops_second=15),
         )
 
     def collate_fn(self, batch, crops_second=None):
