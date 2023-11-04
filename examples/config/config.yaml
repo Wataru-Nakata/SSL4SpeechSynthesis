@@ -36,7 +36,6 @@ train:
     precision: bf16-mixed
     check_val_every_n_epoch: 1
     max_epochs: 3300
-    limit_train_batches: 1
   ckpt_path:
 
 
