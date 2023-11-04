@@ -1,4 +1,5 @@
 from lightning.pytorch import LightningDataModule
+from torch.utils.data import DistributedSampler
 
 
 class AudioDataModule(LightningDataModule):
@@ -11,19 +12,23 @@ class AudioDataModule(LightningDataModule):
         )
 
     def train_dataloader(self):
+        sampler = DistributedSampler(self.train_dataset,drop_last=True)
         return torch.utils.data.DataLoader(
             self.train_dataset,
             batch_size=self.cfg.batch_size,
             num_workers=self.cfg.num_workers,
             collate_fn=lambda batch: self.collate_fn(batch, crops_second=15),
+            sampler=sampler,
         )
 
     def val_dataloader(self):
+        sampler = DistributedSampler(self.train_dataset,drop_last=True)
         return torch.utils.data.DataLoader(
             self.val_dataset,
             batch_size=self.cfg.batch_size,
             num_workers=self.cfg.num_workers,
             collate_fn=self.collate_fn,
+            sampler=sampler,
         )
 
     def collate_fn(self, batch, crops_second=None):
