@@ -64,7 +64,7 @@ class DACBertLightningModule(LightningModule):
             span_length=10,
         )
         output = self.forward({"x": latents, "targets": codes.clone()})
-        self.log("val/loss", output.loss)
+        self.log("val/loss", output.loss,sync_dist=True)
         return output.loss
     def on_fit_start(self) -> None:
         self.feature_extractor.to(self.device)

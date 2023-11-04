@@ -12,13 +12,13 @@ from lightning.pytorch.loggers import WandbLogger
 @hydra.main(version_base="1.3", config_name="config", config_path="config")
 def main(cfg: DictConfig):
     seed_everything(1234)
-    lightning_module = DACBertLightningModule(cfg.model)
     callbacks = [LearningRateMonitor(logging_interval="step")]
-    datamodule = AudioDataModule(cfg.data)
     loggers = WandbLogger(project="ssl4speechsynthesis", log_model=True)
     trainer = hydra.utils.instantiate(
         cfg.train.trainer, logger=loggers, callbacks=callbacks
     )
+    lightning_module = DACBertLightningModule(cfg.model)
+    datamodule = AudioDataModule(cfg.data)
     trainer.fit(lightning_module, datamodule, ckpt_path=cfg.train.ckpt_path)
 
 
