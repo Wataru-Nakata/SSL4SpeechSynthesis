@@ -20,11 +20,11 @@ model:
 
 data:
   roots:
-   - "/work/ge43/e43001/datasets/hq-youtube"
+   - "/work/ge43/e43001/datasets/LibriSpeech"
   patterns:
    - "**/*.flac"
   batch_size: 8
-  num_workers: 4
+  num_workers: 9
   sample_rate: 24000
 
 train:
@@ -36,6 +36,8 @@ train:
     precision: bf16-mixed
     check_val_every_n_epoch: 1
     max_epochs: 3300
+    limit_val_batches: 40
+    gradient_clip_val: 1.0
   ckpt_path:
 
 
