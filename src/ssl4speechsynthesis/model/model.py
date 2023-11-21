@@ -17,17 +17,18 @@ class DACBert(nn.Module):
         for i in range(hparams.n_heads):
             self.lm_heads.append(nn.Linear(config.hidden_size, hparams.vocab_size))
 
-    def forward(self, x, targets=None):
-        x = self.input_linear(x)
-        x = self.bert(inputs_embeds=x).last_hidden_state
+    def forward(self, bert_output, targets=None):
+        bert_output = self.input_linear(bert_output)
+        bert_output = self.bert(inputs_embeds=bert_output, output_hidden_states=True)
+        last_hidden_state = bert_output.last_hidden_state
         lm_heads_outputs = []
         for lm_head in self.lm_heads:
-            lm_heads_outputs.append(lm_head(x))
+            lm_heads_outputs.append(lm_head(last_hidden_state))
         if targets is None:
             loss = None
         else:
             lm_heads_outputs = torch.stack(lm_heads_outputs, dim=2)
             loss = self.loss(lm_heads_outputs.permute(0, 3, 1, 2), targets)
 
-        output = MaskedLMOutput(loss=loss, logits=lm_heads_outputs)
+        output = MaskedLMOutput(loss=loss, logits=lm_heads_outputs, hidden_states=bert_output.hidden_states)
         return output
