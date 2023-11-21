@@ -17,9 +17,9 @@ class DACBert(nn.Module):
         for i in range(hparams.n_heads):
             self.lm_heads.append(nn.Linear(config.hidden_size, hparams.vocab_size))
 
-    def forward(self, bert_output, targets=None):
-        bert_output = self.input_linear(bert_output)
-        bert_output = self.bert(inputs_embeds=bert_output, output_hidden_states=True)
+    def forward(self, x, targets=None):
+        x = self.input_linear(x)
+        bert_output = self.bert(inputs_embeds=x, output_hidden_states=True)
         last_hidden_state = bert_output.last_hidden_state
         lm_heads_outputs = []
         for lm_head in self.lm_heads:
