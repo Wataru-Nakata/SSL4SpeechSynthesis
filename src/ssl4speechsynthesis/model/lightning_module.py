@@ -12,8 +12,8 @@ from .maksing import span_masking
 import torchmetrics
 
 class FeatureExtractor():
-    def __init__(self,hparams) -> None:
-        self.dac = DAC.load(hparams.dac_path).eval()
+    def __init__(self,cfg) -> None:
+        self.dac = DAC.load(cfg.dac_path).eval()
     @torch.inference_mode()
     def __call__(self, x,n_quantizers=2):
         z, codes, latents, _, _ = self.dac.encode(
@@ -25,16 +25,16 @@ class FeatureExtractor():
 
 
 class DACBertLightningModule(LightningModule):
-    def __init__(self, hparams):
+    def __init__(self, cfg):
         super().__init__()
-        self.model = DACBert(hparams.dac_bert)
+        self.model = DACBert(cfg.dac_bert)
         self.mask_embedding = nn.Parameter(
-            torch.randn(hparams.dac_bert.input_size), requires_grad=True
+            torch.randn(cfg.dac_bert.input_size), requires_grad=True
         )
-        self.feature_extractor = FeatureExtractor(hparams)
-        self.top_10accuracy= torchmetrics.Accuracy("multiclass",num_classes=hparams.dac_bert.vocab_size,top_k=10)
-        self.top_1accuracy= torchmetrics.Accuracy("multiclass",num_classes=hparams.dac_bert.vocab_size,top_k=1)
-        self.hparams = hparams
+        self.feature_extractor = FeatureExtractor(cfg)
+        self.top_10accuracy= torchmetrics.Accuracy("multiclass",num_classes=cfg.dac_bert.vocab_size,top_k=10)
+        self.top_1accuracy= torchmetrics.Accuracy("multiclass",num_classes=cfg.dac_bert.vocab_size,top_k=1)
+        self.cfg = cfg
         self.save_hyperparameters()
 
     def forward(self, x):
@@ -56,7 +56,7 @@ class DACBertLightningModule(LightningModule):
         self.log("train/loss", output.loss)
         self.log("train/top_10accuracy", self.top_10accuracy(output.logits, codes))
         self.log("train/top_1accuracy", self.top_1accuracy(output.logits, codes))
-        for i in range(self.hparams.dac_bert.n_heads):
+        for i in range(self.cfg.dac_bert.n_heads):
             self.log(f"train/head{i+1}/top_10accuracy", self.top_10accuracy(output.logits, codes))
             self.log(f"train/head{i+1}/top_1accuracy", self.top_1accuracy(output.logits, codes))
         return output.loss
@@ -76,7 +76,7 @@ class DACBertLightningModule(LightningModule):
         self.log("val/loss", output.loss,sync_dist=True)
         self.log("val/top_10accuracy", self.top_10accuracy(output.logits, codes),sync_dist=True)
         self.log("val/top_1accuracy", self.top_1accuracy(output.logits, codes),sync_dist=True)
-        for i in range(self.hparams.dac_bert.n_heads):
+        for i in range(self.cfg.dac_bert.n_heads):
             print(output.logits.shape,codes.shape)
             self.log(f"val/head{i+1}/top_10accuracy", self.top_10accuracy(output.logits, codes),sync_dist=True)
             self.log(f"val/head{i+1}/top_1accuracy", self.top_1accuracy(output.logits, codes),sync_dist=True)  
