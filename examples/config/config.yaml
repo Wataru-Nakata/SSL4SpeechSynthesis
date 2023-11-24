@@ -16,16 +16,30 @@ model:
       layer_norm_eps: 1e-12
       pad_token_id: 0
     n_heads: 2
-  dac_path: /work/ge43/e43001/weights.pth
+  dac_path: /work/ge43/e43001/runs/baseline_50Hz_librispeech/best/dac/weights.pth
 
 data:
-  roots:
-   - "/work/ge43/e43001/datasets/LibriSpeech"
-  patterns:
-   - "**/*.flac"
-  batch_size: 8
-  num_workers: 9
-  sample_rate: 24000
+  train:
+    roots:
+    - "/work/ge43/e43001/datasets/LibriSpeech/train-clean-100"
+    - "/work/ge43/e43001/datasets/LibriSpeech/train-clean-360"
+    - "/work/ge43/e43001/datasets/LibriSpeech/train-other-500"
+    patterns:
+    - "**/*.flac"
+    - "**/*.flac"
+    - "**/*.flac"
+    batch_size: 8
+    num_workers: 4
+    sample_rate: 24000
+  val:
+    roots:
+    - "/work/ge43/e43001/datasets/LibriSpeech/dev-clean"
+    - "/work/ge43/e43001/datasets/LibriSpeech/dev-other"
+    patterns:
+    - "**/*.flac"
+    batch_size: 8
+    num_workers: 0
+    sample_rate: 24000
 
 train:
   trainer:
@@ -34,7 +48,7 @@ train:
     devices: -1
     strategy: "ddp"
     precision: bf16-mixed
-    check_val_every_n_epoch: 1
+    check_val_every_n_epoch: 10
     max_epochs: 3300
     limit_val_batches: 40
     gradient_clip_val: 1.0

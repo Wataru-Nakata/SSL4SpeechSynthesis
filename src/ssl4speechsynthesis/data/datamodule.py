@@ -1,3 +1,9 @@
+import torch
+from torch.utils.data.dataset import Dataset
+import torchaudio
+from pathlib import Path
+import random
+import string
 from lightning.pytorch import LightningDataModule
 from torch.utils.data import DistributedSampler
 
@@ -6,30 +12,28 @@ class AudioDataModule(LightningDataModule):
     def __init__(self, hparams):
         super().__init__()
         self.cfg = hparams
-        self.dataset = GlobWavDataset(hparams.roots, hparams.patterns)
-        self.train_dataset, self.val_dataset = torch.utils.data.random_split(
-            self.dataset, [len(self.dataset) - 3000, 3000]
-        )
+        self.train_dataset = GlobWavDataset(hparams.train.roots, hparams.train.patterns)
+        self.val_dataset = GlobWavDataset(hparams.val.roots, hparams.val.patterns)
 
     def train_dataloader(self):
         sampler = DistributedSampler(self.train_dataset,drop_last=True)
         return torch.utils.data.DataLoader(
             self.train_dataset,
-            batch_size=self.cfg.batch_size,
-            num_workers=self.cfg.num_workers,
+            batch_size=self.cfg.train.batch_size,
+            num_workers=self.cfg.train.num_workers,
             drop_last=True,
             persistent_workers=True,
-            collate_fn=lambda batch: self.collate_fn(batch, crops_second=15),
+            collate_fn=lambda batch: self.collate_fn(batch, crops_second=20),
             sampler=sampler,
         )
 
     def val_dataloader(self):
         return torch.utils.data.DataLoader(
             self.val_dataset,
-            batch_size=self.cfg.batch_size,
-            num_workers=0,
+            batch_size=self.cfg.val.batch_size,
+            num_workers=self.cfg.val.num_workers,
             drop_last=True,
-            collate_fn=lambda batch: self.collate_fn(batch, crops_second=15),
+            collate_fn=lambda batch: self.collate_fn(batch, crops_second=20),
         )
 
     def collate_fn(self, batch, crops_second=None):
@@ -47,12 +51,6 @@ class AudioDataModule(LightningDataModule):
         return wavs, wav_names
 
 
-import torch
-from torch.utils.data.dataset import Dataset
-import torchaudio
-from pathlib import Path
-import random
-import string
 
 
 def generate_random_string(length):

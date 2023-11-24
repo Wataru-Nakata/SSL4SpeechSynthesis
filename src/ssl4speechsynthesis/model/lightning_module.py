@@ -9,6 +9,7 @@ from ssl4speechsynthesis.model.model import DACBert
 from itertools import chain
 import transformers
 from .maksing import span_masking
+import torchmetrics
 
 class FeatureExtractor():
     def __init__(self,hparams) -> None:
@@ -31,6 +32,9 @@ class DACBertLightningModule(LightningModule):
             torch.randn(hparams.dac_bert.input_size), requires_grad=True
         )
         self.feature_extractor = FeatureExtractor(hparams)
+        self.top_10accuracy= torchmetrics.Accuracy("multiclass",num_classes=hparams.dac_bert.vocab_size,top_k=10)
+        self.top_1accuracy= torchmetrics.Accuracy("multiclass",num_classes=hparams.dac_bert.vocab_size,top_k=1)
+        self.hparams = hparams
         self.save_hyperparameters()
 
     def forward(self, x):
@@ -45,11 +49,16 @@ class DACBertLightningModule(LightningModule):
         latents = span_masking(
             latents,
             mask_embedding=self.mask_embedding,
-            mask_probability=0.08,
+            mask_probability=0.16,
             span_length=10,
         )
         output = self.forward({"x": latents, "targets": codes.clone()})
         self.log("train/loss", output.loss)
+        self.log("train/top_10accuracy", self.top_10accuracy(output.logits, codes))
+        self.log("train/top_1accuracy", self.top_1accuracy(output.logits, codes))
+        for i in range(self.hparams.dac_bert.n_heads):
+            self.log(f"train/head{i+1}/top_10accuracy", self.top_10accuracy(output.logits, codes))
+            self.log(f"train/head{i+1}/top_1accuracy", self.top_1accuracy(output.logits, codes))
         return output.loss
 
     def validation_step(self, batch, batch_idx):
@@ -60,11 +69,17 @@ class DACBertLightningModule(LightningModule):
         latents = span_masking(
             latents,
             mask_embedding=self.mask_embedding,
-            mask_probability=0.08,
+            mask_probability=0.16,
             span_length=10,
         )
         output = self.forward({"x": latents, "targets": codes.clone()})
         self.log("val/loss", output.loss,sync_dist=True)
+        self.log("val/top_10accuracy", self.top_10accuracy(output.logits, codes),sync_dist=True)
+        self.log("val/top_1accuracy", self.top_1accuracy(output.logits, codes),sync_dist=True)
+        for i in range(self.hparams.dac_bert.n_heads):
+            print(output.logits.shape,codes.shape)
+            self.log(f"val/head{i+1}/top_10accuracy", self.top_10accuracy(output.logits, codes),sync_dist=True)
+            self.log(f"val/head{i+1}/top_1accuracy", self.top_1accuracy(output.logits, codes),sync_dist=True)  
         return output.loss
     def on_fit_start(self) -> None:
         self.feature_extractor.to(self.device)
