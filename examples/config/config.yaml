@@ -30,7 +30,7 @@ data:
     - "**/*.flac"
     batch_size: 8
     num_workers: 4
-    sample_rate: 24000
+  sample_rate: 24000
   val:
     roots:
     - "/work/ge43/e43001/datasets/LibriSpeech/dev-clean"
@@ -39,7 +39,6 @@ data:
     - "**/*.flac"
     batch_size: 8
     num_workers: 0
-    sample_rate: 24000
 
 train:
   trainer:
