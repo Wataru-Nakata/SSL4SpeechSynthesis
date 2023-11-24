@@ -57,8 +57,8 @@ class DACBertLightningModule(LightningModule):
         self.log("train/top_10accuracy", self.top_10accuracy(output.logits, codes))
         self.log("train/top_1accuracy", self.top_1accuracy(output.logits, codes))
         for i in range(self.cfg.dac_bert.n_heads):
-            self.log(f"val/head{i+1}/top_10accuracy", self.top_10accuracy(output.logits[:,:,i,:], codes[:,:,i]),sync_dist=True)
-            self.log(f"val/head{i+1}/top_1accuracy", self.top_1accuracy(output.logits[:,:,i,:], codes[:,:,i]),sync_dist=True)  
+            self.log(f"val/head{i+1}/top_10accuracy", self.top_10accuracy(output.logits[:,:,i,:].permute(0,2,1), codes[:,:,i]),sync_dist=True)
+            self.log(f"val/head{i+1}/top_1accuracy", self.top_1accuracy(output.logits[:,:,i,:].permute(0,2,1), codes[:,:,i]),sync_dist=True)  
         return output.loss
 
     def validation_step(self, batch, batch_idx):
@@ -75,8 +75,8 @@ class DACBertLightningModule(LightningModule):
         output = self.forward({"x": latents, "targets": codes.clone()})
         self.log("val/loss", output.loss,sync_dist=True)
         for i in range(self.cfg.dac_bert.n_heads):
-            self.log(f"val/head{i+1}/top_10accuracy", self.top_10accuracy(output.logits[:,:,i,:], codes[:,:,i]),sync_dist=True)
-            self.log(f"val/head{i+1}/top_1accuracy", self.top_1accuracy(output.logits[:,:,i,:], codes[:,:,i]),sync_dist=True)  
+            self.log(f"val/head{i+1}/top_10accuracy", self.top_10accuracy(output.logits[:,:,i,:].permute(0,2,1), codes[:,:,i]),sync_dist=True)
+            self.log(f"val/head{i+1}/top_1accuracy", self.top_1accuracy(output.logits[:,:,i,:].permute(0,2,1), codes[:,:,i]),sync_dist=True)  
         return output.loss
     def on_fit_start(self) -> None:
         self.feature_extractor.to(self.device)
