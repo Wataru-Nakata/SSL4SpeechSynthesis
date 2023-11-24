@@ -83,6 +83,6 @@ class DACBertLightningModule(LightningModule):
         return super().on_fit_start()
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
-        scheduler = transformers.get_constant_schedule_with_warmup(optimizer, 10000)
+        optimizer = torch.optim.Adam(self.parameters(), lr=5e-4)
+        scheduler = transformers.get_linear_schedule_with_warmup(optimizer, 40_000, 500_000)
         return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
