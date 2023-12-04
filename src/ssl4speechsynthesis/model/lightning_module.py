@@ -16,10 +16,10 @@ class FeatureExtractor():
         self.dac = DAC.load(cfg.dac_path).eval()
     @torch.inference_mode()
     def __call__(self, x,n_quantizers=2):
-        z, codes, latents, _, _ = self.dac.encode(
-            x, n_quantizers=n_quantizers
-        )
-        return z, codes, latents
+        x = self.dac.preprocess(x, 24000)
+        z = self.dac.encoder(x)
+        z_q, codes, latents, commitment_loss, codebook_loss = self.dac.quantizer(z, n_quantizers)
+        return z_q, codes, z
     def to(self,device:torch.device):
         self.dac.to(device)
 
@@ -81,6 +81,6 @@ class DACBertLightningModule(LightningModule):
         return super().on_fit_start()
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=5e-4)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=2e-4, weight_decay=1e-2,eps=1e-6)
         scheduler = transformers.get_linear_schedule_with_warmup(optimizer, 40_000, 500_000)
         return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
