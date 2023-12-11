@@ -13,10 +13,10 @@ class DACBert(nn.Module):
         del self.bert.embeddings.word_embeddings
         self.lm_heads = nn.ModuleList()
         self.input_linear = nn.Linear(hparams.input_size, config.hidden_size)
-        self.loss = nn.CrossEntropyLoss()
+        self.loss = nn.CrossEntropyLoss(ignore_index=config.vocab_size)
         self.alpha = 1
         for i in range(hparams.n_heads):
-            self.lm_heads.append(nn.Linear(config.hidden_size, hparams.vocab_size))
+            self.lm_heads.append(nn.Linear(config.hidden_size, hparams.vocab_size+1))
 
     def forward(self, x, targets=None,mask=None,lens=None):
         x = self.input_linear(x)
@@ -30,7 +30,6 @@ class DACBert(nn.Module):
         else:
             if mask ==None:
                 lm_heads_outputs = torch.stack(lm_heads_outputs, dim=2).permute(0, 3, 1, 2)
-                print(lm_heads_outputs.size(), targets.size())
                 loss = self.loss(lm_heads_outputs, targets)
             else:
                 raise NotImplementedError
