@@ -14,13 +14,12 @@ class DACBert(nn.Module):
         self.lm_heads = nn.ModuleList()
         self.input_linear = nn.Linear(hparams.input_size, config.hidden_size)
         self.loss = nn.CrossEntropyLoss()
-        self.alpha = 1
         for i in range(hparams.n_heads):
             self.lm_heads.append(nn.Linear(config.hidden_size, hparams.vocab_size))
 
-    def forward(self, x, targets=None,mask=None,lens=None):
+    def forward(self, x, targets=None):
         x = self.input_linear(x)
-        bert_output = self.bert(inputs_embeds=x, output_hidden_states=True,attention_mask=lens)
+        bert_output = self.bert(inputs_embeds=x, output_hidden_states=True)
         last_hidden_state = bert_output.last_hidden_state
         lm_heads_outputs = []
         for lm_head in self.lm_heads:
@@ -28,11 +27,8 @@ class DACBert(nn.Module):
         if targets is None:
             loss = None
         else:
-            if mask ==None:
-                lm_heads_outputs = torch.stack(lm_heads_outputs, dim=2).permute(0, 3, 1, 2)
-                print(lm_heads_outputs.size(), targets.size())
-                loss = self.loss(lm_heads_outputs, targets)
-            else:
-                raise NotImplementedError
+            lm_heads_outputs = torch.stack(lm_heads_outputs, dim=2)
+            loss = self.loss(lm_heads_outputs.permute(0, 3, 1, 2), targets)
+
         output = MaskedLMOutput(loss=loss, logits=lm_heads_outputs, hidden_states=bert_output.hidden_states)
         return output

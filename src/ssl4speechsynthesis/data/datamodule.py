@@ -6,6 +6,7 @@ import random
 import string
 from lightning.pytorch import LightningDataModule
 from torch.utils.data import DistributedSampler
+import math
 
 
 class AudioDataModule(LightningDataModule):
@@ -39,6 +40,7 @@ class AudioDataModule(LightningDataModule):
     def collate_fn(self, batch, crops_second=None):
         wavs = []
         wav_names = []
+        lengths = []
         for sample in batch:
             wav_name, (wav, sr), wav_path = sample
             if sr != self.cfg.sample_rate:
@@ -47,8 +49,11 @@ class AudioDataModule(LightningDataModule):
                 wav = wav[:, : int(crops_second * self.cfg.sample_rate)]
             wavs.append(wav.view(-1))
             wav_names.append(wav_name)
+            length = wav.view(-1).size(0)
+            right_pad = math.ceil(length / self.cfg.hop_length) * self.cfg.hop_length - length
+            lengths.append(length + right_pad)  
         wavs = torch.nn.utils.rnn.pad_sequence(wavs, batch_first=True)
-        return wavs, wav_names
+        return wavs, wav_names,lengths
 
 
 

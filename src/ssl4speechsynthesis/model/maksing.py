@@ -16,7 +16,6 @@ def span_masking(inputs, mask_embedding:torch.Tensor, mask_probability=0.08, spa
 
 if __name__ == "__main__":
     inputs = torch.ones(1, 100, 3)
+    inputs = torch.cat([inputs, inputs*2, inputs*3], dim=0)
     mask_embedding = torch.zeros(3)
-    masked = span_masking(inputs,mask_embedding)
-    print("inputs", inputs)
-    print("masked", masked)
+    masked,mask = span_masking(inputs,mask_embedding)

@@ -10,10 +10,13 @@ from itertools import chain
 import transformers
 from .maksing import span_masking
 import torchmetrics
+import numpy as np
 
 class FeatureExtractor():
     def __init__(self,cfg) -> None:
         self.dac = DAC.load(cfg.dac_path).eval()
+        self.downsmaple_rate = int(np.prod(self.dac.encoder_rates))
+        print(self.dac.hop_length)
     @torch.inference_mode()
     def __call__(self, x,n_quantizers=2):
         x = self.dac.preprocess(x, 24000)
@@ -42,7 +45,8 @@ class DACBertLightningModule(LightningModule):
         return output
 
     def training_step(self, batch, batch_idx):
-        wavs, wav_names = batch
+        wavs, wav_names,lengths = batch
+        out_lengths = torch.tensor([length // self.feature_extractor.downsmaple_rate for length in lengths],device=self.device)
         z,codes,latents = self.feature_extractor(wavs.unsqueeze(1), n_quantizers=len(self.model.lm_heads))
         latents = latents.transpose(1, 2)
         codes = codes.transpose(1, 2)
@@ -53,15 +57,17 @@ class DACBertLightningModule(LightningModule):
             span_length=10,
         )
         span_mask = span_mask.to(self.device)
-        output = self.forward({"x": latents, "targets": codes.clone(),'mask': span_mask})
+        attention_mask = torch.arange(latents.size(1),device=self.device).expand(latents.size(0), -1) < out_lengths.unsqueeze(1)
+        output = self.forward({"x": latents, "targets": codes.clone(),'lens':attention_mask})
         self.log("train/loss", output.loss)
         for i in range(self.cfg.dac_bert.n_heads):
-            self.log(f"train/head{i+1}/top_10accuracy", self.top_10accuracy(output.logits[:,:,i,:].permute(0,2,1), codes[:,:,i]),sync_dist=True)
-            self.log(f"train/head{i+1}/top_1accuracy", self.top_1accuracy(output.logits[:,:,i,:].permute(0,2,1), codes[:,:,i]),sync_dist=True)  
+            self.log(f"val/head{i+1}/top_10accuracy", self.top_10accuracy(output.logits[:,:,:,i], codes[:,:,i]),sync_dist=True)
+            self.log(f"val/head{i+1}/top_1accuracy", self.top_1accuracy(output.logits[:,:,:,i], codes[:,:,i]),sync_dist=True)  
         return output.loss
 
     def validation_step(self, batch, batch_idx):
-        wavs, wav_names = batch
+        wavs, wav_names,lengths = batch
+        out_lengths = torch.tensor([length // self.feature_extractor.downsmaple_rate for length in lengths],device=self.device)
         z,codes,latents = self.feature_extractor(wavs.unsqueeze(1), n_quantizers=len(self.model.lm_heads))
         latents = latents.transpose(1, 2)
         codes = codes.transpose(1, 2)
@@ -72,11 +78,12 @@ class DACBertLightningModule(LightningModule):
             span_length=10,
         )
         span_mask = span_mask.to(self.device)
-        output = self.forward({"x": latents, "targets": codes.clone(),'mask': span_mask})
+        attention_mask = torch.arange(latents.size(1),device=self.device).expand(latents.size(0), -1) < out_lengths.unsqueeze(1)
+        output = self.forward({"x": latents, "targets": codes.clone(),'lens':attention_mask})
         self.log("val/loss", output.loss,sync_dist=True)
         for i in range(self.cfg.dac_bert.n_heads):
-            self.log(f"val/head{i+1}/top_10accuracy", self.top_10accuracy(output.logits[:,:,i,:].permute(0,2,1), codes[:,:,i]),sync_dist=True)
-            self.log(f"val/head{i+1}/top_1accuracy", self.top_1accuracy(output.logits[:,:,i,:].permute(0,2,1), codes[:,:,i]),sync_dist=True)  
+            self.log(f"val/head{i+1}/top_10accuracy", self.top_10accuracy(output.logits[:,:,:,i], codes[:,:,i]),sync_dist=True)
+            self.log(f"val/head{i+1}/top_1accuracy", self.top_1accuracy(output.logits[:,:,:,i], codes[:,:,i]),sync_dist=True)  
         return output.loss
     def on_fit_start(self) -> None:
         self.feature_extractor.to(self.device)
