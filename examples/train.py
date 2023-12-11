@@ -12,6 +12,7 @@ from lightning.pytorch.loggers import WandbLogger
 @hydra.main(version_base="1.3", config_name="config", config_path="config")
 def main(cfg: DictConfig):
     seed_everything(1234)
+    torch.set_float32_matmul_precision('medium')
     callbacks = [LearningRateMonitor(logging_interval="step")]
     loggers = WandbLogger(project="ssl4speechsynthesis", log_model=True)
     trainer = hydra.utils.instantiate(

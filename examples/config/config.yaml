@@ -48,7 +48,7 @@ train:
     strategy: "ddp"
     precision: bf16-mixed
     check_val_every_n_epoch: 4
-    max_steps: 540_000
+    max_steps: 500_000
     limit_val_batches: 40
     gradient_clip_val: 1.0
   ckpt_path:

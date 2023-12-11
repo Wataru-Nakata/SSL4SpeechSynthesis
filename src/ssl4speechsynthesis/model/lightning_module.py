@@ -46,13 +46,14 @@ class DACBertLightningModule(LightningModule):
         z,codes,latents = self.feature_extractor(wavs.unsqueeze(1), n_quantizers=len(self.model.lm_heads))
         latents = latents.transpose(1, 2)
         codes = codes.transpose(1, 2)
-        latents = span_masking(
+        latents,span_mask = span_masking(
             latents,
             mask_embedding=self.mask_embedding,
-            mask_probability=0.16,
+            mask_probability=0.08,
             span_length=10,
         )
-        output = self.forward({"x": latents, "targets": codes.clone()})
+        span_mask = span_mask.to(self.device)
+        output = self.forward({"x": latents, "targets": codes.clone(),'mask': span_mask})
         self.log("train/loss", output.loss)
         for i in range(self.cfg.dac_bert.n_heads):
             self.log(f"train/head{i+1}/top_10accuracy", self.top_10accuracy(output.logits[:,:,i,:].permute(0,2,1), codes[:,:,i]),sync_dist=True)
@@ -64,13 +65,14 @@ class DACBertLightningModule(LightningModule):
         z,codes,latents = self.feature_extractor(wavs.unsqueeze(1), n_quantizers=len(self.model.lm_heads))
         latents = latents.transpose(1, 2)
         codes = codes.transpose(1, 2)
-        latents = span_masking(
+        latents,span_mask = span_masking(
             latents,
             mask_embedding=self.mask_embedding,
-            mask_probability=0.16,
+            mask_probability=0.08,
             span_length=10,
         )
-        output = self.forward({"x": latents, "targets": codes.clone()})
+        span_mask = span_mask.to(self.device)
+        output = self.forward({"x": latents, "targets": codes.clone(),'mask': span_mask})
         self.log("val/loss", output.loss,sync_dist=True)
         for i in range(self.cfg.dac_bert.n_heads):
             self.log(f"val/head{i+1}/top_10accuracy", self.top_10accuracy(output.logits[:,:,i,:].permute(0,2,1), codes[:,:,i]),sync_dist=True)

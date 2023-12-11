@@ -11,7 +11,7 @@ def span_masking(inputs, mask_embedding:torch.Tensor, mask_probability=0.08, spa
             if mask[i, j] == False:
                 span_mask[i, j : j + span_length] = False
     inputs[~span_mask] = mask_embedding.type(inputs.dtype)
-    return inputs
+    return inputs,span_mask
 
 
 if __name__ == "__main__":
