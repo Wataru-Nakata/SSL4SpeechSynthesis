@@ -15,7 +15,7 @@ class DACBert(nn.Module):
         self.input_linear = nn.Linear(hparams.input_size, config.hidden_size)
         self.loss = nn.CrossEntropyLoss()
         for i in range(hparams.n_heads):
-            self.lm_heads.append(nn.Linear(config.hidden_size, hparams.vocab_size))
+            self.lm_heads.append(nn.Linear(config.hidden_size, hparams.vocab_size+1))
 
     def forward(self, x, targets=None):
         x = self.input_linear(x)

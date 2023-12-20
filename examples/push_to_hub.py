@@ -9,7 +9,7 @@ import dac
 dac_path = "../../descript-audio-codec/runs/baseline_50Hz_librispeech/best/dac/weights.pth"
 config = NecoBertConfig(n_heads=1)
 model = NecoBertModel(config)
-params = torch.load("../ssl4speechsynthesis/vebvyc5i/checkpoints/epoch=223-step=492128.ckpt",map_location="cpu")
+params = torch.load("./epoch=227-step=500000.ckpt",map_location="cpu")
 pretrained_dict = {k.removeprefix('model.'): v for k, v in params['state_dict'].items() if k in model.state_dict()}
 model.model.load_state_dict(pretrained_dict)
 model.preprocessor.dac= dac.DAC.load(dac_path)

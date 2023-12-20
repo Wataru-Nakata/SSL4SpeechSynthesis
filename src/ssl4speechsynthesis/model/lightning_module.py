@@ -34,8 +34,8 @@ class DACBertLightningModule(LightningModule):
             torch.randn(cfg.dac_bert.input_size), requires_grad=True
         )
         self.feature_extractor = FeatureExtractor(cfg)
-        self.top_10accuracy= torchmetrics.Accuracy("multiclass",num_classes=cfg.dac_bert.vocab_size+1,top_k=10,ignore_index=cfg.dac_bert.vocab_size)
-        self.top_1accuracy= torchmetrics.Accuracy("multiclass",num_classes=cfg.dac_bert.vocab_size+1,top_k=1,ignore_index= cfg.dac_bert.vocab_size)
+        self.top_10accuracy= torchmetrics.Accuracy("multiclass",num_classes=cfg.dac_bert.vocab_size+1,top_k=10,ignore_index=cfg.dac_bert.vocab_size,ignore_index=-100)
+        self.top_1accuracy= torchmetrics.Accuracy("multiclass",num_classes=cfg.dac_bert.vocab_size+1,top_k=1,ignore_index= cfg.dac_bert.vocab_size,ignore_index=-100)
         self.pad_idx = cfg.dac_bert.vocab_size
         self.cfg = cfg
         self.save_hyperparameters()
@@ -57,6 +57,8 @@ class DACBertLightningModule(LightningModule):
             span_length=10,
         )
         span_mask = span_mask.to(self.device)
+        targets[span_mask]
+        print(targets[span])
         attention_mask = torch.arange(latents.size(1),device=self.device).expand(latents.size(0), -1) < out_lengths.unsqueeze(1)
         codes = codes.masked_fill_(~attention_mask.unsqueeze(-1).repeat(1,1,codes.size(-1)),self.pad_idx)
         output = self.forward({"x": latents, "targets": codes,'lens':attention_mask})
