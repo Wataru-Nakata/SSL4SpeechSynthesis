@@ -62,8 +62,8 @@ class DACBertLightningModule(LightningModule):
         output = self.forward({"x": latents, "targets": codes,'lens':attention_mask})
         self.log("train/loss", output.loss)
         for i in range(self.cfg.dac_bert.n_heads):
-            self.log(f"val/head{i+1}/top_10accuracy", self.top_10accuracy(output.logits[:,:,:,i], codes[:,:,i]),sync_dist=True)
-            self.log(f"val/head{i+1}/top_1accuracy", self.top_1accuracy(output.logits[:,:,:,i], codes[:,:,i]),sync_dist=True)  
+            self.log(f"train/head{i+1}/top_10accuracy", self.top_10accuracy(output.logits[:,:,:,i], codes[:,:,i]),sync_dist=True)
+            self.log(f"train/head{i+1}/top_1accuracy", self.top_1accuracy(output.logits[:,:,:,i], codes[:,:,i]),sync_dist=True)  
         return output.loss
 
     def validation_step(self, batch, batch_idx):
