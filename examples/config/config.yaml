@@ -1,7 +1,7 @@
 model:
   dac_bert:
     input_size: 2048
-    vocab_size: 1024
+    vocab_size: 256
     bert_config: 
       vocab_size: 30522
       hidden_size: 768
@@ -52,6 +52,7 @@ train:
     max_steps: 500_000
     limit_val_batches: 40
     gradient_clip_val: 1.0
+    check_val_every_n_epoch: null
   ckpt_path:
 
 
