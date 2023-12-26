@@ -34,8 +34,8 @@ class DACBertLightningModule(LightningModule):
             torch.randn(cfg.dac_bert.input_size), requires_grad=True
         )
         self.feature_extractor = FeatureExtractor(cfg)
-        self.top_10accuracy= torchmetrics.Accuracy("multiclass",num_classes=cfg.dac_bert.vocab_size+1,top_k=10,ignore_index=cfg.dac_bert.vocab_size,ignore_index=-100)
-        self.top_1accuracy= torchmetrics.Accuracy("multiclass",num_classes=cfg.dac_bert.vocab_size+1,top_k=1,ignore_index= cfg.dac_bert.vocab_size,ignore_index=-100)
+        self.top_10accuracy= torchmetrics.Accuracy("multiclass",num_classes=cfg.dac_bert.vocab_size+1,top_k=10,ignore_index=cfg.dac_bert.vocab_size)
+        self.top_1accuracy= torchmetrics.Accuracy("multiclass",num_classes=cfg.dac_bert.vocab_size+1,top_k=1,ignore_index= cfg.dac_bert.vocab_size)
         self.pad_idx = cfg.dac_bert.vocab_size
         self.cfg = cfg
         self.save_hyperparameters()
@@ -57,15 +57,19 @@ class DACBertLightningModule(LightningModule):
             span_length=10,
         )
         span_mask = span_mask.to(self.device)
-        targets[span_mask]
-        print(targets[span])
         attention_mask = torch.arange(latents.size(1),device=self.device).expand(latents.size(0), -1) < out_lengths.unsqueeze(1)
         codes = codes.masked_fill_(~attention_mask.unsqueeze(-1).repeat(1,1,codes.size(-1)),self.pad_idx)
-        output = self.forward({"x": latents, "targets": codes,'lens':attention_mask})
+        output = self.forward({"x": latents, "targets": codes,'lens':attention_mask,"mask": span_mask})
         self.log("train/loss", output.loss)
         for i in range(self.cfg.dac_bert.n_heads):
-            self.log(f"train/head{i+1}/top_10accuracy", self.top_10accuracy(output.logits[:,:,:,i], codes[:,:,i]),sync_dist=True)
-            self.log(f"train/head{i+1}/top_1accuracy", self.top_1accuracy(output.logits[:,:,:,i], codes[:,:,i]),sync_dist=True)  
+            masked_targets = codes.clone()
+            unmasked_targets = codes.clone()
+            masked_targets[span_mask] = self.pad_idx
+            unmasked_targets[~span_mask] = self.pad_idx
+            self.log(f"train/head{i+1}/masked/top_10accuracy", self.top_10accuracy(output.logits[:,:,:,i], masked_targets[:,:,i]),sync_dist=True)
+            self.log(f"train/head{i+1}/unmasked/top_10accuracy", self.top_10accuracy(output.logits[:,:,:,i], unmasked_targets[:,:,i]),sync_dist=True)
+            self.log(f"train/head{i+1}/masked/top_1accuracy", self.top_1accuracy(output.logits[:,:,:,i], masked_targets[:,:,i]),sync_dist=True)  
+            self.log(f"train/head{i+1}/unmasked/top_1accuracy", self.top_1accuracy(output.logits[:,:,:,i], unmasked_targets[:,:,i]),sync_dist=True)  
         return output.loss
 
     def validation_step(self, batch, batch_idx):
@@ -83,11 +87,17 @@ class DACBertLightningModule(LightningModule):
         span_mask = span_mask.to(self.device)
         attention_mask = torch.arange(latents.size(1),device=self.device).expand(latents.size(0), -1) < out_lengths.unsqueeze(1)
         codes = codes.masked_fill_(~attention_mask.unsqueeze(-1).repeat(1,1,codes.size(-1)),self.pad_idx)
-        output = self.forward({"x": latents, "targets": codes,'lens':attention_mask})
+        output = self.forward({"x": latents, "targets": codes,'lens':attention_mask,"mask": span_mask})
         self.log("val/loss", output.loss,sync_dist=True)
         for i in range(self.cfg.dac_bert.n_heads):
-            self.log(f"val/head{i+1}/top_10accuracy", self.top_10accuracy(output.logits[:,:,:,i], codes[:,:,i]),sync_dist=True)
-            self.log(f"val/head{i+1}/top_1accuracy", self.top_1accuracy(output.logits[:,:,:,i], codes[:,:,i]),sync_dist=True)  
+            masked_targets = codes.clone()
+            unmasked_targets = codes.clone()
+            masked_targets[span_mask] = self.pad_idx
+            unmasked_targets[~span_mask] = self.pad_idx
+            self.log(f"val/head{i+1}/masked/top_10accuracy", self.top_10accuracy(output.logits[:,:,:,i], masked_targets[:,:,i]),sync_dist=True)
+            self.log(f"val/head{i+1}/unmasked/top_10accuracy", self.top_10accuracy(output.logits[:,:,:,i], unmasked_targets[:,:,i]),sync_dist=True)
+            self.log(f"val/head{i+1}/masked/top_1accuracy", self.top_1accuracy(output.logits[:,:,:,i], masked_targets[:,:,i]),sync_dist=True)  
+            self.log(f"val/head{i+1}/unmasked/top_1accuracy", self.top_1accuracy(output.logits[:,:,:,i], unmasked_targets[:,:,i]),sync_dist=True)  
         return output.loss
     def on_fit_start(self) -> None:
         self.feature_extractor.to(self.device)
