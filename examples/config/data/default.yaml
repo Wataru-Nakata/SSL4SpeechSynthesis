@@ -1,0 +1,15 @@
+datamodule:
+  _target_: ssl4speechsynthesis.data.datamodule.AudioDataModule
+  _recursive_: false
+train:
+  dataset: ./necobert_dataset/train/shard-{00000..00140}.tar
+  batch_size: 16
+  num_workers: 8
+  crop_second: 20
+val:
+  dataset: ./necobert_dataset/valid/shard-{00000..00002}.tar
+  batch_size: 16
+  num_workers: 8
+  crop_second: 20
+sample_rate: 24000
+hop_length: 480

@@ -1,3 +1,4 @@
+from functools import partial
 import torch
 from torch.utils.data.dataset import Dataset
 import torchaudio
@@ -7,42 +8,43 @@ import string
 from lightning.pytorch import LightningDataModule
 from torch.utils.data import DistributedSampler
 import math
+import webdataset as wds
 
 
 class AudioDataModule(LightningDataModule):
     def __init__(self, hparams):
         super().__init__()
         self.cfg = hparams
-        self.train_dataset = GlobWavDataset(hparams.train.roots, hparams.train.patterns)
-        self.val_dataset = GlobWavDataset(hparams.val.roots, hparams.val.patterns)
+        self.train_dataset = wds.WebDataset(self.cfg.train.dataset).shuffle(1000).decode(wds.torch_audio)
+        self.val_dataset = wds.WebDataset(self.cfg.val.dataset).decode(wds.torch_audio)
 
     def train_dataloader(self):
-        sampler = DistributedSampler(self.train_dataset,drop_last=True)
-        return torch.utils.data.DataLoader(
+        loader = wds.WebLoader(
             self.train_dataset,
-            batch_size=self.cfg.train.batch_size,
             num_workers=self.cfg.train.num_workers,
-            drop_last=True,
-            persistent_workers=True,
-            collate_fn=lambda batch: self.collate_fn(batch, crops_second=20),
-            sampler=sampler,
+        ).batched(
+            batchsize=self.cfg.train.batch_size,
+            collation_fn=partial(self.collate_fn, crops_second=self.cfg.train.crop_second),
         )
-
+        loader.length = 10000
+        return loader
     def val_dataloader(self):
-        return torch.utils.data.DataLoader(
+        loader=  wds.WebLoader(
             self.val_dataset,
-            batch_size=self.cfg.val.batch_size,
             num_workers=self.cfg.val.num_workers,
-            drop_last=True,
-            collate_fn=lambda batch: self.collate_fn(batch, crops_second=20),
+        ).batched(
+            batchsize=self.cfg.train.batch_size,
+            collation_fn=partial(self.collate_fn, crops_second=self.cfg.val.crop_second),
         )
+        loader.length = 10000
+        return loader
 
     def collate_fn(self, batch, crops_second=None):
         wavs = []
         wav_names = []
         lengths = []
         for sample in batch:
-            wav_name, (wav, sr), wav_path = sample
+            wav_name, (wav, sr), wav_path = sample['__key__'], sample['sample.flac'], sample['wav_path.txt']
             if sr != self.cfg.sample_rate:
                 wav = torchaudio.transforms.Resample(sr, self.cfg.sample_rate)(wav)
             if crops_second is not None:
@@ -80,11 +82,7 @@ class GlobWavDataset(Dataset):
 
     def __getitem__(self, idx):
         wav_path = self.wav_files[idx]
-        if self.add_random_string:
-            return (
-                wav_path.stem + generate_random_string(5),
-                torchaudio.load(wav_path),
-                str(wav_path),
-            )
-        else:
-            return wav_path.stem, torchaudio.load(wav_path), str(wav_path)
+        with open(wav_path, "rb") as f:
+            bytes = f.read()
+        return str(wav_path),bytes 
+            

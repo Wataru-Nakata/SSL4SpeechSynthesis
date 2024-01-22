@@ -1,0 +1,21 @@
+lightning_module:
+  _target_: ssl4speechsynthesis.model.lightning_module.DACBertLightningModule
+  _recursive_: false
+dac_bert:
+  input_size: 2048
+  vocab_size: 1024
+  bert_config: 
+    vocab_size: 30522
+    hidden_size: 768
+    num_hidden_layers: 12
+    num_attention_heads: 12
+    intermediate_size: 3072
+    hidden_act: "gelu"
+    hidden_dropout_prob: 0.1
+    attention_probs_dropout_prob:  0.1
+    max_position_embeddings: 4096
+    initializer_range: 0.02
+    layer_norm_eps: 1e-12
+    pad_token_id: 0
+  n_heads: 1
+dac_path: /home/wnakata/descript-audio-codec/runs/baseline_50Hz_librispeech/best/dac/weights.pth

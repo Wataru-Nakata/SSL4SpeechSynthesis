@@ -1,0 +1,26 @@
+feature_extractor:
+  dac_path: /home/wnakata/descript-audio-codec/runs/baseline_50Hz_librispeech/best/dac/weights.pth
+train:
+  save_path: ./necobert_dataset/train/shard-%05d.tar
+  dataset:
+    roots:
+      - /mnt/hdd/librispeech/LibriSpeech/train-clean-100
+      - /mnt/hdd/librispeech/LibriSpeech/train-clean-360
+      - /mnt/hdd/librispeech/LibriSpeech/train-other-500
+    patterns:
+      - "**/*.flac"
+      - "**/*.flac"
+      - "**/*.flac"
+valid:
+  dataset:
+    roots:
+      - /mnt/hdd/librispeech/LibriSpeech/dev-clean
+      - /mnt/hdd/librispeech/LibriSpeech/dev-other
+    patterns:
+      - "**/*.flac"
+      - "**/*.flac"
+  save_path: ./necobert_dataset/valid/shard-%05d.tar
+sample_rate: 24000
+num_workers: 32
+maxsize: 1e9
+maxcount: 2000

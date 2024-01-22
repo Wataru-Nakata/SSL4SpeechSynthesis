@@ -1,58 +1,7 @@
-model:
-  dac_bert:
-    input_size: 2048
-    vocab_size: 256
-    bert_config: 
-      vocab_size: 30522
-      hidden_size: 768
-      num_hidden_layers: 12
-      num_attention_heads: 12
-      intermediate_size: 3072
-      hidden_act: "gelu"
-      hidden_dropout_prob: 0.1
-      attention_probs_dropout_prob:  0.1
-      max_position_embeddings: 2048
-      initializer_range: 0.02
-      layer_norm_eps: 1e-12
-      pad_token_id: 0
-    n_heads: 1
-  dac_path: ../../descript-audio-codec/runs/baseline_50Hz_librispeech/best/dac/weights.pth
-
-data:
-  train:
-    roots:
-    - "/mnt/hdd/librispeech/LibriSpeech/train-clean-100"
-    - "/mnt/hdd/librispeech/LibriSpeech/train-clean-360"
-    - "/mnt/hdd/librispeech/LibriSpeech/train-other-500"
-    patterns:
-    - "**/*.flac"
-    - "**/*.flac"
-    - "**/*.flac"
-    batch_size: 16
-    num_workers: 4
-  sample_rate: 24000
-  val:
-    roots:
-    - "/mnt/hdd/librispeech/LibriSpeech/dev-clean"
-    - "/mnt/hdd/librispeech/LibriSpeech/dev-other"
-    patterns:
-    - "**/*.flac"
-    batch_size: 8
-    num_workers: 0
-  hop_length: 480
-
-train:
-  trainer:
-    _target_: lightning.Trainer
-    accelerator: "gpu"
-    devices: -1
-    strategy: "ddp"
-    precision: bf16-mixed
-    val_check_interval: 10_000
-    max_steps: 500_000
-    limit_val_batches: 40
-    gradient_clip_val: 1.0
-    check_val_every_n_epoch: null
-  ckpt_path:
-
+defaults:
+  - _self_
+  - preprocess: default
+  - model: default
+  - data: default
+  - train: default
 

@@ -18,10 +18,8 @@ def main(cfg: DictConfig):
     trainer = hydra.utils.instantiate(
         cfg.train.trainer, logger=loggers, callbacks=callbacks
     )
-    lightning_module = DACBertLightningModule(cfg.model)
-    datamodule = AudioDataModule(cfg.data)
+    lightning_module = hydra.utils.instantiate(cfg.model.lightning_module,cfg=cfg)
+    datamodule = hydra.utils.instantiate(cfg.data.datamodule,hparams=cfg.data)
     trainer.fit(lightning_module, datamodule, ckpt_path=cfg.train.ckpt_path)
-
-
 if __name__ == "__main__":
     main()
