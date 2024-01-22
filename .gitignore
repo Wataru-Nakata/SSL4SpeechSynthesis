@@ -163,3 +163,4 @@ examples/wandb
 examples/outputs
 
 *.ckpt
+*.tar
