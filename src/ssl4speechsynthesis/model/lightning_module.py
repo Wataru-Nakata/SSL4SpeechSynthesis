@@ -12,6 +12,7 @@ from .maksing import span_masking
 import torchmetrics
 import numpy as np
 from dac.model.dac import Encoder
+from transformers.models.hubert.modeling_hubert import HubertFeatureEncoder
 
 class FeatureExtractor():
     def __init__(self,cfg) -> None:
@@ -22,7 +23,7 @@ class FeatureExtractor():
         x = self.dac.preprocess(x, 24000)
         z = self.dac.encoder(x)
         z_q, codes, latents, commitment_loss, codebook_loss = self.dac.quantizer(z, n_quantizers)
-        return z_q, codes, z
+        return z_q, codes, z, x
     def to(self,device:torch.device):
         self.dac.to(device)
 
@@ -35,13 +36,8 @@ class DACBertLightningModule(LightningModule):
             torch.randn(cfg.model.dac_bert.input_size), requires_grad=True
         )
         self.feature_extractor = FeatureExtractor(cfg.model)
-        print(cfg.model.dac_bert)
         if cfg.model.dac_bert.use_pretrained_encoder is False:
-            self.encoder = Encoder(
-                self.feature_extractor.dac.encoder_dim,
-                self.feature_extractor.dac.encoder_rates,
-                self.feature_extractor.dac.latent_dim
-            )
+            self.encoder = HubertFeatureEncoder(cfg.model.dac_bert.encoder)
         self.top_10accuracy= torchmetrics.Accuracy("multiclass",num_classes=cfg.model.dac_bert.vocab_size+1,top_k=10,ignore_index=cfg.model.dac_bert.vocab_size)
         self.top_1accuracy= torchmetrics.Accuracy("multiclass",num_classes=cfg.model.dac_bert.vocab_size+1,top_k=1,ignore_index= cfg.model.dac_bert.vocab_size)
         self.pad_idx = cfg.model.dac_bert.vocab_size
@@ -55,11 +51,11 @@ class DACBertLightningModule(LightningModule):
     def training_step(self, batch, batch_idx):
         wavs, wav_names,lengths = batch
         out_lengths = torch.tensor([length // self.feature_extractor.downsmaple_rate for length in lengths],device=self.device)
-        z,codes,latents = self.feature_extractor(wavs.unsqueeze(1), n_quantizers=len(self.model.lm_heads))
+        z,codes,latents,x = self.feature_extractor(wavs.unsqueeze(1), n_quantizers=len(self.model.lm_heads))
         latents = latents.transpose(1, 2).clone()
         codes = codes.transpose(1, 2).clone()
         if hasattr(self,"encoder"):
-            latents = self.encoder(wavs.unsqueeze(1))
+            latents = self.encoder(x.clone().squeeze(1)).transpose(1,2)
         latents,span_mask = span_masking(
             latents,
             mask_embedding=self.mask_embedding,
@@ -85,9 +81,11 @@ class DACBertLightningModule(LightningModule):
     def validation_step(self, batch, batch_idx):
         wavs, wav_names,lengths = batch
         out_lengths = torch.tensor([length // self.feature_extractor.downsmaple_rate for length in lengths],device=self.device)
-        z,codes,latents = self.feature_extractor(wavs.unsqueeze(1), n_quantizers=len(self.model.lm_heads))
+        z,codes,latents,x = self.feature_extractor(wavs.unsqueeze(1), n_quantizers=len(self.model.lm_heads))
         latents = latents.transpose(1, 2).clone()
         codes = codes.transpose(1, 2).clone()
+        if hasattr(self,"encoder"):
+            latents = self.encoder(x.squeeze(1)).transpose(1,2)
         latents,span_mask = span_masking(
             latents,
             mask_embedding=self.mask_embedding,
