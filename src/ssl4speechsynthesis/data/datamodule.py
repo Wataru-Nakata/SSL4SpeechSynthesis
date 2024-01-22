@@ -26,17 +26,18 @@ class AudioDataModule(LightningDataModule):
             batchsize=self.cfg.train.batch_size,
             collation_fn=partial(self.collate_fn, crops_second=self.cfg.train.crop_second),
         )
-        loader.length = 10000
+        loader = loader.repeat(10).with_epoch(50_000)
         return loader
     def val_dataloader(self):
-        loader=  wds.WebLoader(
+        loader: wds.WebLoader =  wds.WebLoader(
             self.val_dataset,
             num_workers=self.cfg.val.num_workers,
         ).batched(
             batchsize=self.cfg.train.batch_size,
             collation_fn=partial(self.collate_fn, crops_second=self.cfg.val.crop_second),
         )
-        loader.length = 10000
+        loader = loader.repeat(10).with_epoch(256)
+
         return loader
 
     def collate_fn(self, batch, crops_second=None):
