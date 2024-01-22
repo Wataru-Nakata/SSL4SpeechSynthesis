@@ -10,13 +10,22 @@ from torch.utils.data import DistributedSampler
 import math
 import webdataset as wds
 
+def my_split_by_worker(urls):
+    wi = torch.utils.data.get_worker_info()
+    if wi is None:
+        return urls
+    else:
+        return urls[wi.id::wi.num_workers]
+def my_split_by_node(urls):
+    node_id, node_count = torch.distributed.get_rank(), torch.distributed.get_world_size()
+    return urls[node_id::node_count]
 
 class AudioDataModule(LightningDataModule):
     def __init__(self, hparams):
         super().__init__()
         self.cfg = hparams
-        self.train_dataset = wds.WebDataset(self.cfg.train.dataset).shuffle(1000).decode(wds.torch_audio)
-        self.val_dataset = wds.WebDataset(self.cfg.val.dataset).decode(wds.torch_audio)
+        self.train_dataset = wds.WebDataset(self.cfg.train.dataset,nodesplitter=wds.split_by_node).shuffle(1000).decode(wds.torch_audio).with_length(50_000*self.cfg.train.batch_size)
+        self.val_dataset = wds.WebDataset(self.cfg.val.dataset,nodesplitter=wds.split_by_node).decode(wds.torch_audio).with_length(256*self.cfg.val.batch_size)
 
     def train_dataloader(self):
         loader = wds.WebLoader(
@@ -26,17 +35,17 @@ class AudioDataModule(LightningDataModule):
             batchsize=self.cfg.train.batch_size,
             collation_fn=partial(self.collate_fn, crops_second=self.cfg.train.crop_second),
         )
-        loader = loader.repeat(10).with_epoch(50_000)
+        loader = loader
         return loader
     def val_dataloader(self):
         loader: wds.WebLoader =  wds.WebLoader(
             self.val_dataset,
             num_workers=self.cfg.val.num_workers,
         ).batched(
-            batchsize=self.cfg.train.batch_size,
+            batchsize=self.cfg.val.batch_size,
             collation_fn=partial(self.collate_fn, crops_second=self.cfg.val.crop_second),
         )
-        loader = loader.repeat(10).with_epoch(256)
+        loader = loader
 
         return loader
 

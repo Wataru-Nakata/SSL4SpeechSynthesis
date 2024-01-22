@@ -3,13 +3,13 @@ datamodule:
   _recursive_: false
 train:
   dataset: ./necobert_dataset/train/shard-{00000..00140}.tar
-  batch_size: 16
-  num_workers: 8
+  batch_size: 8
+  num_workers: 4
   crop_second: 20
 val:
-  dataset: ./necobert_dataset/valid/shard-{00000..00002}.tar
-  batch_size: 16
-  num_workers: 8
+  dataset: ./necobert_dataset/valid/output-{000000..000278}.tar
+  batch_size: 8
+  num_workers: 4
   crop_second: 20
 sample_rate: 24000
 hop_length: 480
