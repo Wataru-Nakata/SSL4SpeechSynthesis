@@ -37,7 +37,7 @@ class DACBertLightningModule(LightningModule):
         )
         self.feature_extractor = FeatureExtractor(cfg.model)
         if cfg.model.dac_bert.use_pretrained_encoder is False:
-            self.encoder = HubertFeatureEncoder(cfg.model.dac_bert.encoder)
+            self.encoder = Encoder(**cfg.model.dac_bert.encoder)
         self.top_10accuracy= torchmetrics.Accuracy("multiclass",num_classes=cfg.model.dac_bert.vocab_size+1,top_k=10,ignore_index=cfg.model.dac_bert.vocab_size)
         self.top_1accuracy= torchmetrics.Accuracy("multiclass",num_classes=cfg.model.dac_bert.vocab_size+1,top_k=1,ignore_index= cfg.model.dac_bert.vocab_size)
         self.pad_idx = cfg.model.dac_bert.vocab_size
@@ -55,7 +55,7 @@ class DACBertLightningModule(LightningModule):
         latents = latents.transpose(1, 2).clone()
         codes = codes.transpose(1, 2).clone()
         if hasattr(self,"encoder"):
-            latents = self.encoder(x.clone().squeeze(1)).transpose(1,2)
+            latents = self.encoder(x.clone()).transpose(1,2)
         latents,span_mask = span_masking(
             latents,
             mask_embedding=self.mask_embedding,
@@ -85,7 +85,7 @@ class DACBertLightningModule(LightningModule):
         latents = latents.transpose(1, 2).clone()
         codes = codes.transpose(1, 2).clone()
         if hasattr(self,"encoder"):
-            latents = self.encoder(x.squeeze(1)).transpose(1,2)
+            latents = self.encoder(x.clone()).transpose(1,2)
         latents,span_mask = span_masking(
             latents,
             mask_embedding=self.mask_embedding,

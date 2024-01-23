@@ -20,30 +20,33 @@ dac_bert:
   n_heads: 1
   use_pretrained_encoder: false
   encoder:
-    conv_dim: [
-      512,
-      512,
-      512,
-      512,
-      2048,
-    ]
-    conv_kernel: [
-      10,
-      3,
-      3,
-      3,
-      2
-    ]
-    conv_stride: [
-      5,
-      4,
-      4,
-      3,
-      2,
-    ]
-    feat_extract_norm: group
-    feat_extract_activation: gelu
-    conv_bias: false
-    num_feat_extract_layers: 5
+    d_model: 64
+    strides: [2,3,4,4,5]
+    d_latent: 2048
+    # conv_dim: [
+    #   512,
+    #   512,
+    #   512,
+    #   512,
+    #   2048,
+    # ]
+    # conv_kernel: [
+    #   10,
+    #   3,
+    #   3,
+    #   3,
+    #   2
+    # ]
+    # conv_stride: [
+    #   5,
+    #   4,
+    #   4,
+    #   3,
+    #   2,
+    # ]
+    # feat_extract_norm: group
+    # feat_extract_activation: gelu
+    # conv_bias: false
+    # num_feat_extract_layers: 5
 
 dac_path: /home/wnakata/descript-audio-codec/runs/baseline_50Hz_librispeech/best/dac/weights.pth
