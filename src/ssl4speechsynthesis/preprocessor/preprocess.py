@@ -98,4 +98,4 @@ class Preprocessor():
                 )
             pbar.close()
             sink.close()
-            print(f'\nPreprocessing finished')
+            print('\nPreprocessing finished')
