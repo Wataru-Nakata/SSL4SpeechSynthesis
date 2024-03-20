@@ -1,0 +1,3 @@
+[submodule "libs/Amphion"]
+	path = libs/Amphion
+	url = https://github.com/open-mmlab/Amphion.git
