@@ -11,5 +11,5 @@ val:
   batch_size: 8
   num_workers: 4
   crop_second: 20
-sample_rate: 24000
-hop_length: 480
+sample_rate: 16000
+hop_length: 200

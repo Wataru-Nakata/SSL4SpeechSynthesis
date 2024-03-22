@@ -2,7 +2,7 @@ lightning_module:
   _target_: ssl4speechsynthesis.model.lightning_module.DACBertLightningModule
   _recursive_: false
 dac_bert:
-  input_size: 2048
+  input_size: 256
   vocab_size: 1024
   bert_config: 
     vocab_size: 30522
@@ -17,5 +17,8 @@ dac_bert:
     initializer_range: 0.02
     layer_norm_eps: 1e-12
     pad_token_id: 0
-  n_heads: 1
-dac_path: /home/wnakata/descript-audio-codec/runs/baseline_50Hz_librispeech/best/dac/weights.pth
+  n_heads: 4
+  use_pretrained_encoder: true
+feature_extractor:
+  _target_: ssl4speechsynthesis.model.lightning_module.FACodecFeatureExtractor
+  cfg: null

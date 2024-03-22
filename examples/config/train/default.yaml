@@ -3,7 +3,7 @@ trainer:
   accelerator: "gpu"
   devices: -1
   strategy: "ddp"
-  precision: bf16-mixed
+  precision: 16-mixed
   val_check_interval: 10_000
   max_steps: 500_000
   limit_val_batches: 40
